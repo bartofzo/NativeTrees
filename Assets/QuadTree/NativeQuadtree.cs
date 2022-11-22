@@ -11,6 +11,7 @@ namespace NativeTrees
 {
     /// <summary>
     /// Generic Burst/ECS compatible sparse quadtree that stores objects together with their axis aligned bounding boxes (AABB2D's)
+    /// Ported from <see cref="NativeOctree{T}"/>
     /// <para>
     /// Supported queries:
     ///     - Raycast
@@ -20,7 +21,7 @@ namespace NativeTrees
     /// <para>
     /// Other features:
     ///     - Implemented as a sparse quadtree, so only stores nodes that are occupied,
-    ///       allowing it to go to a max depth of 10 (this could be more if the nodeId's are stored as long values
+    ///       allowing it to go to a max depth of 15 (this could be more if the nodeId's are stored as long values
     ///     - Supports insertion of AABB2D's
     ///     - Fast path insertino for points
     ///     - Employs an extremely fast technique of checking for AABB2D / quad overlaps, see comment near the end
@@ -248,20 +249,18 @@ namespace NativeTrees
             math.bitmask((point >= nodeCenter).xyxy) >> 2;
         
         /// <summary>
-        /// Max depth of the quadtree, we need 2 bits for each level we go down
-        /// leave one bit for root node
+        /// Max depth of the quadtree
         /// </summary>
-        public const int MaxDepth = 8 * sizeof(int) / 2 - 1;
+        public const int MaxDepth = 8 * sizeof(int) / 2 - 1; //  we need 2 bits for each level we go down
+        /// leave one bit for root node Id
         
         /// <summary>
         /// Gets a unique identifier for a node.
-        /// The octants are identified using the following pattern, where a zero stands for the negative side:
-        /// 
-        ///         110     111
-        ///     010     011
-        ///     
-        ///         100     101
-        ///     000    001
+        /// The quads are identified using the following pattern, where a zero stands for the negative side:
+        ///
+        /// 10  11
+        ///
+        /// 00  01
         /// 
         /// For each level we go down, we shift these bits 2 spaces to the left
         /// </summary>
@@ -316,7 +315,6 @@ namespace NativeTrees
             new float2(1, 1),
         };
 
-        
         /// <summary>
         /// Stores an object together with it's bounds
         /// </summary>

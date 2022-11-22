@@ -23,7 +23,7 @@ namespace NativeTrees
             return octree.Raycast<RayAABBIntersecter<T>>(ray, out hit);
         }
 
-        struct RayAABBIntersecter<T> : IOctreeRayIntersecter<T> where T : unmanaged
+        struct RayAABBIntersecter<T> : IOctreeRayIntersecter<T>
         {
             public bool IntersectRay(in PrecomputedRay ray, T obj, AABB objBounds, out float distance)
             {

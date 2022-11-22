@@ -14,4 +14,8 @@ namespace NativeTrees
         /// intersection test is fairly expensive, it may be a good idea to first test against the object's bounds in this method.</remarks>
         bool IntersectRay(in PrecomputedRay ray, T obj, AABB objBounds, out float distance);
     }
+    
+    
+    
+    
 }

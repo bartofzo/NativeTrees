@@ -51,8 +51,8 @@ public class NativeOctreeExample : MonoBehaviour
         var vertices = mesh.vertices;
 
         var sw = Stopwatch.StartNew();
-        var actualTriangles = new NativeArray<Triangle>(triangles.Length / 3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        var actualBounds = new NativeArray<AABB>(actualTriangles.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        var tris = new NativeArray<Triangle>(triangles.Length / 3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        var actualBounds = new NativeArray<AABB>(tris.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         
         int n = 0;
         for (int i = 0; i < triangles.Length; i += 3)
@@ -63,18 +63,27 @@ public class NativeOctreeExample : MonoBehaviour
                 vertices[triangles[i + 2]], n);
             
             actualBounds[n] = tri.GetAABB();
-            actualTriangles[n++] = tri;
+            tris[n++] = tri;
         }
         Debug.Log($"Triangles converted in {sw.Elapsed.TotalMilliseconds}ms");
         sw.Restart();
 
         
-        for (int i = 0; i < actualTriangles.Length; i++)
+        // Insert a bunch of triangles
+        for (int i = 0; i < tris.Length; i++)
         {
-            octree.Insert(actualTriangles[i], actualBounds[i]);
-            //var tri = actualTriangles[i];
-            //octree.InsertPoint(tri, tri.a);
+            var triangle = tris[i];
+            octree.Insert(triangle, triangle.GetAABB());
         }
+        
+        // Insert entities that are 'points'
+        for (int i = 0; i < entities.Length; i++)
+        {
+            var entity = entities[i];
+            octree.InsertPoint(entities[i], positions[i]);
+        }
+        
+        //
 
         /*
         var job = new PopulateJob()
@@ -88,7 +97,7 @@ public class NativeOctreeExample : MonoBehaviour
 
         Debug.Log($"Octree constructed in {sw.Elapsed.TotalMilliseconds}ms");
 
-        actualTriangles.Dispose();
+        tris.Dispose();
         actualBounds.Dispose();
     }
 
@@ -105,6 +114,7 @@ public class NativeOctreeExample : MonoBehaviour
 
         var sw = Stopwatch.StartNew();
         bool didHit = octree.Raycast<TriangleRayIntersecter>(ray, out var hit);
+        
         
         if (didHit)
         {

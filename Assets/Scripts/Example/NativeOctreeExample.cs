@@ -37,7 +37,7 @@ public class NativeOctreeExample : MonoBehaviour
 
     private NativeOctree<Triangle> octree;
     private NativeList<Triangle> list;
-    private NativeOctree<Triangle>.NearestNeighbourQuery query;
+    private NativeOctree<Triangle>.NearestNeighbourCache query;
 
     private void Start()
     {
@@ -45,7 +45,7 @@ public class NativeOctreeExample : MonoBehaviour
 
         octree = new NativeOctree<Triangle>(mesh.bounds, 32, 10, Allocator.Persistent);
         list = new NativeList<Triangle>(Allocator.Persistent);
-        query = new NativeOctree<Triangle>.NearestNeighbourQuery(Allocator.Persistent);
+        query = new NativeOctree<Triangle>.NearestNeighbourCache(Allocator.Persistent);
 
         var triangles = mesh.triangles;
         var vertices = mesh.vertices;
@@ -156,7 +156,7 @@ public class NativeOctreeExample : MonoBehaviour
     {
         public float3 point;
         public NativeOctree<Triangle> octree;
-        public NativeOctree<Triangle>.NearestNeighbourQuery queryCache;
+        public NativeOctree<Triangle>.NearestNeighbourCache queryCache;
         public NativeReference<Triangle> nearest;
         
         public void Execute()

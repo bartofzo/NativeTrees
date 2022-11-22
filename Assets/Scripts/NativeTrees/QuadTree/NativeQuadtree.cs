@@ -10,20 +10,20 @@ using UnityEngine;
 namespace NativeTrees
 {
     /// <summary>
-    /// Generic Burst/ECS compatible sparse octree that stores objects together with their axis aligned bounding boxes (AABB's)
+    /// Generic Burst/ECS compatible sparse quadtree that stores objects together with their axis aligned bounding boxes (AABB2D's)
     /// <para>
     /// Supported queries:
     ///     - Raycast
-    ///     - Range (AABB overlap)
+    ///     - Range (AABB2D overlap)
     ///     - N-nearest neighbour
     /// </para>
     /// <para>
     /// Other features:
-    ///     - Implemented as a sparse octree, so only stores nodes that are occupied,
+    ///     - Implemented as a sparse quadtree, so only stores nodes that are occupied,
     ///       allowing it to go to a max depth of 10 (this could be more if the nodeId's are stored as long values
-    ///     - Supports insertion of AABB's
+    ///     - Supports insertion of AABB2D's
     ///     - Fast path insertino for points
-    ///     - Employs an extremely fast technique of checking for AABB / octant overlaps, see comment near the end
+    ///     - Employs an extremely fast technique of checking for AABB2D / quad overlaps, see comment near the end
     ///     - Optimized with SIMD instructions so greatly benefits from burst compilation
     /// </para>
     /// <para>
@@ -34,19 +34,18 @@ namespace NativeTrees
     /// <para>
     /// Future todo's:
     ///     - Frustrum query
-    ///     - 'Fat' raycast (virtually expand AABB's of nodes and objects when testing for ray intersections)
+    ///     - 'Fat' raycast (virtually expand AABB2D's of nodes and objects when testing for ray intersections)
     /// </para>
     /// </summary>
-    public partial struct NativeOctree<T> : INativeDisposable
-        where T : unmanaged 
+    public partial struct NativeQuadtree<T> : INativeDisposable where T : unmanaged 
     {
         private readonly int maxDepth;
         private readonly int objectsPerNode;
         
-        private AABB bounds;
-        private readonly float3 boundsCenter;  // Precomputed bounds values as they are used often
-        private readonly float3 boundsExtents;
-        private readonly float3 boundsQuarterSize;
+        private AABB2D bounds;
+        private readonly float2 boundsCenter;  // Precomputed bounds values as they are used often
+        private readonly float2 boundsExtents;
+        private readonly float2 boundsQuarterSize;
         
         /// <summary>
         /// Mapping from nodeId to the amount of objects that are in it. Once that limit surpasses <see cref="objectsPerNode"/>
@@ -58,21 +57,21 @@ namespace NativeTrees
         private NativeParallelMultiHashMap<uint, ObjWrapper> objects;
         
         /// <summary>
-        /// Constructs an octree with a max depth of 8
+        /// Constructs an quadtree with a max depth of 8
         /// </summary>
-        public NativeOctree(AABB bounds, Allocator allocator) : this(bounds, 16, 8, allocator)
+        public NativeQuadtree(AABB2D bounds, Allocator allocator) : this(bounds, 16, 8, allocator)
         {
         }
         
         /// <summary>
-        /// Constructs an octree
+        /// Constructs an quadtree
         /// </summary>
         /// <param name="bounds"></param>
-        /// <param name="objectsPerNode">The max amount of objects per octant until max depth is reached</param>
+        /// <param name="objectsPerNode">The max amount of objects per quad until max depth is reached</param>
         /// <param name="maxDepth">Max split depth of the tree.</param>
         /// <param name="initialCapacity">Hint at the initial capacity of the tree</param>
         /// <param name="allocator"></param>
-        public NativeOctree(AABB bounds, int objectsPerNode, int maxDepth, Allocator allocator, int initialCapacity = 0)
+        public NativeQuadtree(AABB2D bounds, int objectsPerNode, int maxDepth, Allocator allocator, int initialCapacity = 0)
         {
             if (maxDepth <= 1 || maxDepth > MaxDepth)
                 throw new ArgumentOutOfRangeException(nameof(maxDepth), "Max depth is " + MaxDepth);
@@ -104,7 +103,7 @@ namespace NativeTrees
         /// <summary>
         /// Bounds of the tree
         /// </summary>
-        public AABB Bounds => bounds;
+        public AABB2D Bounds => bounds;
 
         /// <summary>
         /// Insert an object into the tree.
@@ -112,7 +111,7 @@ namespace NativeTrees
         /// <param name="obj">The object to insert</param>
         /// <param name="bounds">The axis aligned bounding box of the object</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Insert(T obj, AABB bounds)
+        public void Insert(T obj, AABB2D bounds)
         {
             // Root node id = 1
             // we always start at depth one (assume one split)
@@ -124,23 +123,23 @@ namespace NativeTrees
         }
 
         /// <summary>
-        /// Insert a point into the octree (AABB's min == max).
-        /// This insertion method is significantly faster than the insertion with an AABB.
+        /// Insert a point into the quadtree (AABB2D's min == max).
+        /// This insertion method is significantly faster than the insertion with an AABB2D.
         /// </summary>
-        public void InsertPoint(T obj, float3 point)
+        public void InsertPoint(T obj, float2 point)
         {
-            var objWrapper = new ObjWrapper(obj, new AABB(point, point));
+            var objWrapper = new ObjWrapper(obj, new AABB2D(point, point));
 
-            // We can (mainly) do without recursion for this insertion method. Except for when an octant needs to subdivide.
+            // We can (mainly) do without recursion for this insertion method. Except for when an quad needs to subdivide.
             QuarterSizeBounds extents = new QuarterSizeBounds(boundsCenter, boundsQuarterSize);
             int depth = 0;
             uint nodeId = 1;
             while (depth <= maxDepth)
             {
-                // We can get the one octant the point is in with one operation
-                int octantIndex = PointToOctantIndex(point, extents.nodeCenter);
-                extents = QuarterSizeBounds.GetOctant(extents, octantIndex);
-                nodeId = GetOctantId(nodeId, octantIndex);
+                // We can get the one quad the point is in with one operation
+                int octantIndex = PointToQuadIndex(point, extents.nodeCenter);
+                extents = QuarterSizeBounds.GetQuad(extents, octantIndex);
+                nodeId = GetQuadId(nodeId, octantIndex);
                 
                 if (TryInsert(nodeId, extents, objWrapper, depth))
                     return;
@@ -154,14 +153,14 @@ namespace NativeTrees
             parentDepth++;
             int objMask = GetBoundsMask(quarterSizeBounds.nodeCenter, objWrapper.bounds);
 
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 4; i++)
             {
-                int octantMask = OctantMasks[i];
+                int octantMask = QuadMasks[i];
                 if ((objMask & octantMask) != octantMask)
                     continue;
                 
-                uint ocantId = GetOctantId(nodeid, i);
-                var octantCenterQuarterSize = QuarterSizeBounds.GetOctant(quarterSizeBounds, i);
+                uint ocantId = GetQuadId(nodeid, i);
+                var octantCenterQuarterSize = QuarterSizeBounds.GetQuad(quarterSizeBounds, i);
                 
                 if (!TryInsert(ocantId, octantCenterQuarterSize, objWrapper, parentDepth))
                     InsertNext(ocantId, octantCenterQuarterSize, objWrapper, parentDepth);
@@ -198,8 +197,8 @@ namespace NativeTrees
             foreach (var tempObj in objects.GetValuesForKey(nodeId))
                 tempObjects[objectCount++] = tempObj;
 
-            FixedList64Bytes<int> countPerOctant = new FixedList64Bytes<int>();
-            countPerOctant.Length = 8;
+            FixedList64Bytes<int> countPerQuad = new FixedList64Bytes<int>();
+            countPerQuad.Length = 4;
 
             objects.Remove(nodeId); // remove all occurances of objects in our original
             for (int i = 0; i < objectCount; i++)
@@ -210,13 +209,13 @@ namespace NativeTrees
                 // Can't make the point optimization here because we can't be certain the node only contained points
                 // Also, benchmarking turned out that this does not yield a significant performance boost anyway
               
-                for (int j = 0; j < 8; j++)
+                for (int j = 0; j < 4; j++)
                 {
-                    int octantMask = OctantMasks[j];
+                    int octantMask = QuadMasks[j];
                     if ((aabbMask & octantMask) == octantMask)
                     {
-                        objects.Add(GetOctantId(nodeId, j), moveObject);
-                        countPerOctant[j] = countPerOctant[j] + 1; // ++ ?
+                        objects.Add(GetQuadId(nodeId, j), moveObject);
+                        countPerQuad[j] = countPerQuad[j] + 1; // ++ ?
                     }
                 }
             }
@@ -225,33 +224,34 @@ namespace NativeTrees
 
             // Update counts, create nodes when neccessary
             depth++;
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 4; i++)
             {
-                int count = countPerOctant[i];
+                int count = countPerQuad[i];
                 if (count > 0)
                 {
-                    uint octantId = GetOctantId(nodeId, i);
+                    uint octantId = GetQuadId(nodeId, i);
                     nodes[octantId] = count; // mark our node as being used
                     
-                    // could be that we need to subdivide again if all of the objects went to the same octant
+                    // could be that we need to subdivide again if all of the objects went to the same quad
                     if (count > objectsPerNode && depth < maxDepth) // todo: maxDepth check can be hoisted
-                        Subdivide(octantId, QuarterSizeBounds.GetOctant(quarterSizeBounds, i), depth);
+                        Subdivide(octantId, QuarterSizeBounds.GetQuad(quarterSizeBounds, i), depth);
                 }
             }
         }
 
         /// <summary>
-        /// Returns the octant's index of a point. Which translated to bits means if the point is on the negative (0) side or positve (1)
+        /// Returns the quad's index of a point. Which translated to bits means if the point is on the negative (0) side or positve (1)
         /// side of the node's center.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int PointToOctantIndex(float3 point, float3 nodeCenter) =>
-            math.bitmask((point >= nodeCenter).xxyz) >> 1;
+        private static int PointToQuadIndex(float2 point, float2 nodeCenter) =>
+            math.bitmask((point >= nodeCenter).xyxy) >> 2;
         
         /// <summary>
-        /// Max depth of the octree, we need 3 bits for each level we go down
+        /// Max depth of the quadtree, we need 2 bits for each level we go down
+        /// leave one bit for root node
         /// </summary>
-        public const int MaxDepth = 8 * sizeof(int) / 3;
+        public const int MaxDepth = 8 * sizeof(int) / 2 - 1;
         
         /// <summary>
         /// Gets a unique identifier for a node.
@@ -263,27 +263,27 @@ namespace NativeTrees
         ///         100     101
         ///     000    001
         /// 
-        /// For each level we go down, we shift these bits 3 spaces to the left
+        /// For each level we go down, we shift these bits 2 spaces to the left
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetOctantId(uint parent, int octantIndex) => (parent << 3) | (uint)octantIndex;
+        public static uint GetQuadId(uint parent, int octantIndex) => (parent << 2) | (uint)octantIndex;
         
         /*
-         * AABB - Octant overlap technique explanation:
-         * We use a clever technique to determine if bounds belong in an octant by computing one mask value for the object's bounds
-         * and comparing it to a predefined bitmask for each octant. This avoids needing to compute the actual overlap eight times
-         * and instead boils down to one bitwise AND comparison for each octant. This boosts performance for AABB insertion and range queries.
+         * AABB2D - quad overlap technique explanation:
+         * We use a clever technique to determine if bounds belong in an quad by computing one mask value for the object's bounds
+         * and comparing it to a predefined bitmask for each quad. This avoids needing to compute the actual overlap eight times
+         * and instead boils down to one bitwise AND comparison for each quad. This boosts performance for AABB2D insertion and range queries.
          *
          * How it works:
          * First, we compare the object's bounds to the center of the parent node we're currently in and convert it to a 6 bit wide bitmask where
          * the lower 3 bits are set to 1 if the bounds min was on a negative side for that axis.
          * The upper 3 bits are set to 1 if the bounds max was on the positive side for that axis.
          *
-         * We have predefined masks for each octant, where a bitwise AND against the object's mask tells you if the object belongs in that octant,
-         * in which case the result must be equal the the octant mask value.
+         * We have predefined masks for each quad, where a bitwise AND against the object's mask tells you if the object belongs in that quad,
+         * in which case the result must be equal the the quad mask value.
          * 
-         * The octant mask says: if the octant is negative for an axis, the min bit for that axis must be set on the object.
-         * If the octant is positive for an axis, the max bit for that axis must be set on the object.
+         * The quad mask says: if the quad is negative for an axis, the min bit for that axis must be set on the object.
+         * If the quad is positive for an axis, the max bit for that axis must be set on the object.
          *
          * This works because for positive axes, the object's bounds max must be in there (it's impossible for max to be negative and min to be positive)
          * Same goes for negative axis overlaps, it's impossible for the max to be on the negative side if min is not there as well
@@ -293,50 +293,27 @@ namespace NativeTrees
          */
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int GetBoundsMask(float3 nodeCenter, AABB aabb)
+        private static int GetBoundsMask(float2 nodeCenter, AABB2D AABB2D)
         {
-            int offMin = math.bitmask(aabb.min.xxyz <= nodeCenter.xxyz) >> 1; // leaves xyz
-            // for the max we have one bit too many but that's OK, since we AND it with the octant mask, we lose that bit anyway
-            return offMin | (math.bitmask(aabb.max.xyzz >= nodeCenter.xyzz) << 3);  
-            
-            // non-SIMD version:
-            /*
-            float3 offMin = aabb.min - nodeCenter;
-            float3 offMax = aabb.max - nodeCenter;
-            return (offMin.x <= 0 ? 0b000_001 : 0) |
-                   (offMin.y <= 0 ? 0b000_010 : 0) |
-                   (offMin.z <= 0 ? 0b000_100 : 0) |
-                   (offMax.x >= 0 ? 0b001_000 : 0) |
-                   (offMax.y >= 0 ? 0b010_000 : 0) |
-                   (offMax.z >= 0 ? 0b100_000 : 0);
-                   */
+            int offMin = math.bitmask(AABB2D.min.xyxy <= nodeCenter.xyxy) >> 2;
+            return offMin | (math.bitmask(AABB2D.max.xyxy >= nodeCenter.xyxy) << 2);
         }
         
-        private static readonly int[] OctantMasks = new[]
+        private static readonly int[] QuadMasks = new[]
         {
-            //             ZYX
-            0b000_111,  // 000  all negative, so the entire object's min should be negative
-            0b001_110,  // 001  YZ are negative so they compare with min, but X is positive so compares with max
-            0b010_101,  // 010  XZ negative so compare them with min, Y is positive so compares with max 
-            0b011_100,  // 011  Z is negative, compare that with min. Compare XY with max.
-            0b100_011,  // 100  etc...
-            0b101_010,  // 101
-            0b110_001,  // 110
-            0b111_000   // 111 all axes are positive, so the entire objects max should be positive as well
+            0b00_11,
+            0b01_10,
+            0b10_01,
+            0b11_00
         };
 
-        // Offset from parent node's center multipliers for each octant
-        private static readonly float3[] OctantCenterOffsets = new[]
+        // Offset from parent node's center multipliers for each quad
+        private static readonly float2[] QuadCenterOffsets = new[]
         {
-            //                         ZYX
-            new float3(-1),         // 000
-            new float3(1, -1, -1),  // 001
-            new float3(-1, 1, -1),  // 010
-            new float3(1, 1, -1),   // 011
-            new float3(-1, -1, 1),  // 100
-            new float3(1, -1, 1),   // 101
-            new float3(-1, 1, 1),   // 110
-            new float3(1)           // 111
+            new float2(-1, -1),         
+            new float2(1,-1),  
+            new float2(-1, 1),  
+            new float2(1, 1),
         };
 
         
@@ -345,10 +322,10 @@ namespace NativeTrees
         /// </summary>
         readonly struct ObjWrapper
         {
-            public readonly AABB bounds;
+            public readonly AABB2D bounds;
             public readonly T obj;
 
-            public ObjWrapper(T obj, AABB bounds)
+            public ObjWrapper(T obj, AABB2D bounds)
             {
                 this.obj = obj;
                 this.bounds = bounds;
@@ -359,52 +336,52 @@ namespace NativeTrees
         // for insertion and range queries
         readonly struct QuarterSizeBounds
         {
-            public readonly float3 nodeCenter;
-            public readonly float3 nodeQuarterSize;
+            public readonly float2 nodeCenter;
+            public readonly float2 nodeQuarterSize;
 
-            public QuarterSizeBounds(float3 nodeCenter, float3 nodeQuarterSize)
+            public QuarterSizeBounds(float2 nodeCenter, float2 nodeQuarterSize)
             {
                 this.nodeCenter = nodeCenter;
                 this.nodeQuarterSize = nodeQuarterSize;
             }
             
             /// <summary>
-            /// Returns the insert node info for the next octant at index.
+            /// Returns the insert node info for the next quad at index.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static QuarterSizeBounds GetOctant(in QuarterSizeBounds parent, int index) => 
-                new QuarterSizeBounds(parent.nodeCenter + OctantCenterOffsets[index] * parent.nodeQuarterSize, .5f * parent.nodeQuarterSize);
+            public static QuarterSizeBounds GetQuad(in QuarterSizeBounds parent, int index) => 
+                new QuarterSizeBounds(parent.nodeCenter + QuadCenterOffsets[index] * parent.nodeQuarterSize, .5f * parent.nodeQuarterSize);
             
             // note: yes, new quarterSize can be precomputed but benchmarking showed no difference and it enhances readability
         }
         
         readonly struct ExtentsBounds
         {
-            public readonly float3 nodeCenter;
-            public readonly float3 nodeExtents;
+            public readonly float2 nodeCenter;
+            public readonly float2 nodeExtents;
 
-            public ExtentsBounds(float3 nodeCenter, float3 nodeExtents)
+            public ExtentsBounds(float2 nodeCenter, float2 nodeExtents)
             {
                 this.nodeCenter = nodeCenter;
                 this.nodeExtents = nodeExtents;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static ExtentsBounds GetOctant(in ExtentsBounds parent, int index)
+            public static ExtentsBounds GetQuad(in ExtentsBounds parent, int index)
             {
-                float3 octantExtents = .5f * parent.nodeExtents;
-                return new ExtentsBounds(parent.nodeCenter + OctantCenterOffsets[index] * octantExtents, octantExtents);
+                float2 octantExtents = .5f * parent.nodeExtents;
+                return new ExtentsBounds(parent.nodeCenter + QuadCenterOffsets[index] * octantExtents, octantExtents);
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public static AABB GetBounds(in ExtentsBounds ce) => new AABB(ce.nodeCenter - ce.nodeExtents, ce.nodeCenter + ce.nodeExtents);
+            public static AABB2D GetBounds(in ExtentsBounds ce) => new AABB2D(ce.nodeCenter - ce.nodeExtents, ce.nodeCenter + ce.nodeExtents);
         }
 
         /// <summary>
         /// Clears and copies the contents of the source tree into this one
         /// </summary>
         /// <param name="source">The source tree to copy</param>
-        public void CopyFrom(NativeOctree<T> source)
+        public void CopyFrom(NativeQuadtree<T> source)
         {
             if (this.maxDepth != source.maxDepth || this.objectsPerNode != source.objectsPerNode)
                 throw new ArgumentException("Source maxDepth and objectsPerNode must be the same as destination");
@@ -442,9 +419,9 @@ namespace NativeTrees
         {
             return JobHandle.CombineDependencies(nodes.Dispose(inputDeps), objects.Dispose(inputDeps));
         }
-        
+
         /// <summary>
-        /// Draws debug gizmos of all the octants in the tree
+        /// Draws debug gizmos of all the quads in the tree
         /// </summary>
         public void DrawGizmos()
         {
@@ -456,11 +433,11 @@ namespace NativeTrees
         {
             parentDepth++;
            
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 4; i++)
             {
-                uint quadId = GetOctantId(nodeId, i);
+                uint quadId = GetQuadId(nodeId, i);
                 if (nodes.TryGetValue(quadId, out int count))
-                    Gizmos(quadId, ExtentsBounds.GetOctant(quarterSizeBounds, i), count, parentDepth);
+                    Gizmos(quadId, ExtentsBounds.GetQuad(quarterSizeBounds, i), count, parentDepth);
             }
         }
         
@@ -469,7 +446,7 @@ namespace NativeTrees
             // Are we in a leaf node?
             if (objectCount <= objectsPerNode || depth == maxDepth)
             {
-                UnityEngine.Gizmos.DrawWireCube(quarterSizeBounds.nodeCenter, (Vector3)quarterSizeBounds.nodeExtents * 2);
+                UnityEngine.Gizmos.DrawWireCube((Vector2)quarterSizeBounds.nodeCenter, (Vector2)quarterSizeBounds.nodeExtents * 2);
                 return;
             }
             

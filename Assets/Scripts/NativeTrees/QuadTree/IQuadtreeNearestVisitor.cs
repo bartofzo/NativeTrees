@@ -1,6 +1,6 @@
 namespace NativeTrees
 {
-    public interface IOctreeNearestVisitor<T>
+    public interface IQuadtreeNearestVisitor<T>
     {
         /// <summary>
         /// Gets called for every object as a result of a nearest neighbour query.

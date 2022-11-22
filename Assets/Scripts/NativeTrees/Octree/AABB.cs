@@ -57,13 +57,13 @@ namespace NativeTrees
         /// Returns the closest point on this AABB from a given point. If the point lies in this AABB, the point itself is returned.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float3 ClosestPoint(float3 point) => math.clamp(point, min, max);
+        public float3 ClosestPoint(float3 point) => clamp(point, min, max);
 
         /// <summary>
         /// Returns the squared distance of a point to this AABB. If the point lies in the box, zero is returned.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public float DistanceSquared(float3 point) => math.distancesq(point, ClosestPoint(point));
+        public float DistanceSquared(float3 point) => distancesq(point, ClosestPoint(point));
 
         /// <summary>
         /// Returns if a ray intersects with this bounding box. If you need the test the same ray

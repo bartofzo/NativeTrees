@@ -3,6 +3,9 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
+// https://bartvandesande.nl
+// https://github.com/bartofzo
+
 namespace NativeTrees
 {
     public partial struct NativeOctree<T> : INativeDisposable
@@ -14,18 +17,22 @@ namespace NativeTrees
         /// <param name="ray">Input ray</param>
         /// <param name="hit">The resulting hit</param>
         /// <param name="intersecter">Delegate to compute ray intersections against the objects or AABB's</param>
+        /// <param name="maxDistance">Max distance from the ray's origin a hit may occur</param>
         /// <typeparam name="U">Type of intersecter</typeparam>
         /// <returns>True when a hit has occured</returns>
-        public bool Raycast<U>(Ray ray, out OctreeRaycastHit<T> hit, U intersecter = default) where U : struct, IOctreeRayIntersecter<T>
+        public bool Raycast<U>(Ray ray, out OctreeRaycastHit<T> hit, U intersecter = default, float maxDistance = float.PositiveInfinity) where U : struct, IOctreeRayIntersecter<T>
         {
             var computedRay = new PrecomputedRay(ray);
 
             // check if ray even hits the boundary, and if so, we use the intersectin point to transpose our ray
-            if (!bounds.IntersectsRay(computedRay, out float3 rayPos))
+            if (!bounds.IntersectsRay(computedRay.origin, computedRay.invDir, out float tMin) || tMin > maxDistance)
             {
                 hit = default;
                 return false;
             }
+            
+            maxDistance -= tMin;
+            var rayPos = computedRay.origin + computedRay.dir * tMin;
             
             // Note: transpose computed ray to boundary and go
             return RaycastNext(
@@ -34,7 +41,8 @@ namespace NativeTrees
                 extentsBounds: new ExtentsBounds(boundsCenter, boundsExtents), 
                 hit: out hit, 
                 intersecter: ref intersecter, 
-                parentDepth: 0);
+                maxDistance: maxDistance,
+            parentDepth: 0);
         }
         
         bool RaycastNext<U>(
@@ -42,7 +50,7 @@ namespace NativeTrees
             uint nodeId, in ExtentsBounds extentsBounds,
             out OctreeRaycastHit<T> hit, 
             ref U intersecter, 
-            int parentDepth) 
+            int parentDepth, float maxDistance) 
             where U : struct, IOctreeRayIntersecter<T>
         {
             parentDepth++;
@@ -51,7 +59,7 @@ namespace NativeTrees
             // https://daeken.svbtle.com/a-stupidly-simple-fast-octree-traversal-for-ray-intersection
             
             // Compute the bounds of the parent node we're in, we use it to check if a plane intersection is valid
-            var parentBounds = ExtentsBounds.GetBounds(extentsBounds);
+            // var parentBounds = ExtentsBounds.GetBounds(extentsBounds);
             
             // compute the plane intersections of YZ, XZ and XY
             float3 planeHits = PlaneHits(ray, extentsBounds.nodeCenter);
@@ -59,6 +67,7 @@ namespace NativeTrees
             // for our first (closest) octant, it must be the position the ray entered the parent node
             int octantIndex = PointToOctantIndex(ray.origin, extentsBounds.nodeCenter);
             float3 octantRayIntersection = ray.origin;
+            float octantDistance = 0;
 
             for (int i = 0; i < 4; i++)
             {
@@ -71,13 +80,14 @@ namespace NativeTrees
                         objectCount: objectCount,
                         hit: out hit,
                         intersecter: ref intersecter, 
+                        maxDistance: maxDistance - octantDistance,
                         depth: parentDepth))
                 {
                     return true;
                 }
 
                 // find next octant to test:
-                float closestDistance = float.PositiveInfinity;
+                float closestDistance = maxDistance; //float.PositiveInfinity;
                 int closestPlaneIndex = -1;
                 
                 for (int j = 0; j < 3; j++)
@@ -86,11 +96,12 @@ namespace NativeTrees
                     if (t > closestDistance || t < 0) continue; // negative t is backwards
                     
                     float3 planeRayIntersection = ray.origin + t * ray.dir;
-                    if (parentBounds.Contains(planeRayIntersection))
+                    //if (parentBounds.Contains(planeRayIntersection))
+                    if (extentsBounds.Contains(planeRayIntersection))
                     {
                         octantRayIntersection = planeRayIntersection;
                         closestPlaneIndex = j;
-                        closestDistance = t;
+                        closestDistance = octantDistance = t;
                     }
                 }
 
@@ -112,14 +123,14 @@ namespace NativeTrees
             in ExtentsBounds extentsBounds, 
             int objectCount,
             out OctreeRaycastHit<T> hit,
-            ref U intersecter, 
+            ref U intersecter, float maxDistance,
             int depth) where U : struct, IOctreeRayIntersecter<T>
         {
             // Are we in a leaf node?
             if (objectCount <= objectsPerNode || depth == maxDepth)
             {
                 hit = default;
-                float closest = float.PositiveInfinity;
+                float closest = maxDistance;
                 bool didHit = false;
 
                 if (objects.TryGetFirstValue(nodeId, out var wrappedObj, out var it))
@@ -150,6 +161,7 @@ namespace NativeTrees
                 extentsBounds: extentsBounds, 
                 hit: out hit, 
                 intersecter: ref intersecter, 
+                maxDistance: maxDistance,
                 parentDepth: depth);
         }
         

@@ -4,6 +4,9 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 
+// https://bartvandesande.nl
+// https://github.com/bartofzo
+
 namespace NativeTrees
 {
     public partial struct NativeQuadtree<T> : INativeDisposable where T : unmanaged 

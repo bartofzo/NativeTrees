@@ -1,3 +1,4 @@
+using System;
 using NativeTrees;
 using Unity.Mathematics;
 using UnityEngine;
@@ -9,6 +10,7 @@ namespace Example
         [SerializeField] private SpriteRenderer spriteRenderer;
         
         public static readonly Vector2 Extents = new float2(.5f, .5f);
+
         public AABB2D Bounds
         {
             get

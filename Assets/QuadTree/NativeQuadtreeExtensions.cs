@@ -3,6 +3,9 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
+// https://bartvandesande.nl
+// https://github.com/bartofzo
+
 namespace NativeTrees
 {
     /// <summary>
@@ -13,14 +16,9 @@ namespace NativeTrees
         /// <summary>
         /// Performs a raycast on the octree just using the bounds of the objects in it
         /// </summary>
-        /// <param name="quadtree"></param>
-        /// <param name="ray"></param>
-        /// <param name="hit"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public static bool RaycastAABB<T>(this NativeQuadtree<T> quadtree, Ray2D ray, out QuadtreeRaycastHit<T> hit) where T : unmanaged
+        public static bool RaycastAABB<T>(this NativeQuadtree<T> quadtree, Ray2D ray, out QuadtreeRaycastHit<T> hit, float maxDistance = float.PositiveInfinity) where T : unmanaged
         {
-            return quadtree.Raycast<RayAABBIntersecter<T>>(ray, out hit);
+            return quadtree.Raycast<RayAABBIntersecter<T>>(ray, out hit, maxDistance: maxDistance);
         }
 
         struct RayAABBIntersecter<T> : IQuadtreeRayIntersecter<T> where T : unmanaged
@@ -128,7 +126,7 @@ namespace NativeTrees
             return visitor.found;
         }
 
-        struct AABBDistanceSquaredProvider<T> : IQuadtreeDistanceProvider<T> where T : unmanaged
+        public struct AABBDistanceSquaredProvider<T> : IQuadtreeDistanceProvider<T> where T : unmanaged
         {
             public float DistanceSquared(float2 point, T obj, AABB2D bounds) => bounds.DistanceSquared(point);
         }

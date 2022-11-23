@@ -13,14 +13,9 @@ namespace NativeTrees
         /// <summary>
         /// Performs a raycast on the octree just using the bounds of the objects in it
         /// </summary>
-        /// <param name="octree"></param>
-        /// <param name="ray"></param>
-        /// <param name="hit"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public static bool RaycastAABB<T>(this NativeOctree<T> octree, Ray ray, out OctreeRaycastHit<T> hit) where T : unmanaged
+        public static bool RaycastAABB<T>(this NativeOctree<T> octree, Ray ray, out OctreeRaycastHit<T> hit, float maxDistance = float.PositiveInfinity) where T : unmanaged
         {
-            return octree.Raycast<RayAABBIntersecter<T>>(ray, out hit);
+            return octree.Raycast<RayAABBIntersecter<T>>(ray, out hit, maxDistance: maxDistance);
         }
 
         struct RayAABBIntersecter<T> : IOctreeRayIntersecter<T>
@@ -128,12 +123,12 @@ namespace NativeTrees
             return visitor.found;
         }
 
-        struct AABBDistanceSquaredProvider<T> : IOctreeDistanceProvider<T> where T : unmanaged
+        struct AABBDistanceSquaredProvider<T> : IOctreeDistanceProvider<T> 
         {
             public float DistanceSquared(float3 point, T obj, AABB bounds) => bounds.DistanceSquared(point);
         }
 
-        struct OctreeNearestAABBVisitor<T> : IOctreeNearestVisitor<T> where T : unmanaged
+        struct OctreeNearestAABBVisitor<T> : IOctreeNearestVisitor<T>
         {
             public T nearest;
             public bool found;
@@ -144,6 +139,7 @@ namespace NativeTrees
                 this.nearest = obj;
                 
                 return false; // immediately stop iterating at first hit
+                // if we want the 2nd or 3rd neighbour, we could iterate on and keep track of the count!
             }
         }
     }

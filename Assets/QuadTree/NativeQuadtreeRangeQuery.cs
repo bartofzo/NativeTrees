@@ -1,6 +1,9 @@
 using System.Runtime.CompilerServices;
 using Unity.Collections;
 
+// https://bartvandesande.nl
+// https://github.com/bartofzo
+
 namespace NativeTrees
 {
     public partial struct NativeQuadtree<T> : INativeDisposable where T : unmanaged 

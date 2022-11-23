@@ -5,6 +5,9 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
+// https://bartvandesande.nl
+// https://github.com/bartofzo
+
 // ReSharper disable StaticMemberInGenericType
 
 namespace NativeTrees
@@ -15,14 +18,14 @@ namespace NativeTrees
     /// Supported queries:
     ///     - Raycast
     ///     - Range (AABB overlap)
-    ///     - N-nearest neighbour
+    ///     - Nearest neighbours
     /// </para>
     /// <para>
     /// Other features:
     ///     - Implemented as a sparse octree, so only stores nodes that are occupied,
     ///       allowing it to go to a max depth of 10 (this could be more if the nodeId's are stored as long values
     ///     - Supports insertion of AABB's
-    ///     - Fast path insertino for points
+    ///     - Fast insertion for points
     ///     - Employs an extremely fast technique of checking for AABB / octant overlaps, see comment near the end
     ///     - Optimized with SIMD instructions so greatly benefits from burst compilation
     /// </para>
@@ -395,6 +398,9 @@ namespace NativeTrees
                 float3 octantExtents = .5f * parent.nodeExtents;
                 return new ExtentsBounds(parent.nodeCenter + OctantCenterOffsets[index] * octantExtents, octantExtents);
             }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool Contains(float3 point) => math.all(math.abs(nodeCenter - point) <= nodeExtents);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static AABB GetBounds(in ExtentsBounds ce) => new AABB(ce.nodeCenter - ce.nodeExtents, ce.nodeCenter + ce.nodeExtents);

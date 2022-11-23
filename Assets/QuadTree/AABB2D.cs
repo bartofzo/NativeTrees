@@ -99,6 +99,7 @@ namespace NativeTrees
         /// And may return a false positive in that case. Checking is ommited for performance and the fact that the intersecter
         /// generally implements a further check.
         /// See https://tavianator.com/2011/ray_box.html and https://tavianator.com/2015/ray_box_nan.html</remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IntersectsRay(in float2 rayPos, in float2 rayInvDir, out float tMin) 
         {
             float2 t1 = (min - rayPos) * rayInvDir;

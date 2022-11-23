@@ -24,9 +24,6 @@ public class NativeOctreeExample : MonoBehaviour
         {
             for (int i = 0; i < actualTriangles.Length; i++)
                 octree.Insert(actualTriangles[i], actualBounds[i]);
-            
-            //for (int i = 0; i < actualTriangles.Length; i++)
-            //    octree.InsertPoint(actualTriangles[i], actualBounds[i].min);
         }
     }
     
@@ -47,58 +44,38 @@ public class NativeOctreeExample : MonoBehaviour
         list = new NativeList<Triangle>(Allocator.Persistent);
         query = new NativeOctree<Triangle>.NearestNeighbourCache(Allocator.Persistent);
 
-        var triangles = mesh.triangles;
-        var vertices = mesh.vertices;
+        var meshTriangles = mesh.triangles;
+        var meshVertices = mesh.vertices;
 
         var sw = Stopwatch.StartNew();
-        var tris = new NativeArray<Triangle>(triangles.Length / 3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-        var actualBounds = new NativeArray<AABB>(tris.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        var triangles = new NativeArray<Triangle>(meshTriangles.Length / 3, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        var bounds = new NativeArray<AABB>(triangles.Length, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
         
         int n = 0;
-        for (int i = 0; i < triangles.Length; i += 3)
+        for (int i = 0; i < meshTriangles.Length; i += 3)
         {
             Triangle tri = new Triangle(
-                vertices[triangles[i]], 
-                vertices[triangles[i + 1]], 
-                vertices[triangles[i + 2]], n);
+                meshVertices[meshTriangles[i]], 
+                meshVertices[meshTriangles[i + 1]], 
+                meshVertices[meshTriangles[i + 2]], n);
             
-            actualBounds[n] = tri.GetAABB();
-            tris[n++] = tri;
+            bounds[n] = tri.GetAABB();
+            triangles[n++] = tri;
         }
         Debug.Log($"Triangles converted in {sw.Elapsed.TotalMilliseconds}ms");
         sw.Restart();
-
-        
-        // Insert a bunch of triangles
-        for (int i = 0; i < tris.Length; i++)
-        {
-            var triangle = tris[i];
-            octree.Insert(triangle, triangle.GetAABB());
-        }
-        
-        // Insert entities that are 'points'
-        for (int i = 0; i < entities.Length; i++)
-        {
-            var entity = entities[i];
-            octree.InsertPoint(entities[i], positions[i]);
-        }
-        
-        //
-
-        /*
         var job = new PopulateJob()
         {
             octree = octree,
-            actualBounds = actualBounds,
-            actualTriangles = actualTriangles
+            actualBounds = bounds,
+            actualTriangles = triangles
         };
         job.Run();
-        */
-
+        
         Debug.Log($"Octree constructed in {sw.Elapsed.TotalMilliseconds}ms");
 
-        tris.Dispose();
-        actualBounds.Dispose();
+        triangles.Dispose();
+        bounds.Dispose();
     }
 
     private void OnDestroy()
@@ -132,6 +109,7 @@ public class NativeOctreeExample : MonoBehaviour
         }
 
         // Pick a random point for our NN query
+        /*
         float3 point = new float3(
             Random.Range(octree.Bounds.min.x, octree.Bounds.max.x),
             Random.Range(octree.Bounds.min.y, octree.Bounds.max.y),
@@ -159,8 +137,10 @@ public class NativeOctreeExample : MonoBehaviour
         newJob.Run();
         Debug.Log($"(Burst) nearest performed in {sw.Elapsed.TotalMilliseconds}ms");
         tempResult.Dispose();
+        */
     }
 
+    /*
     [BurstCompile]
     struct NewNearestJob : IJob
     {
@@ -173,6 +153,16 @@ public class NativeOctreeExample : MonoBehaviour
         {
             queryCache.TryGetNearestAABB(ref octree, point, 50, out var nearestTri);
             nearest.Value = nearestTri;
+        }
+    }
+    */
+
+    private void OnDrawGizmos()
+    {
+        if (Application.isPlaying)
+        {
+            Gizmos.color = Color.black;
+            octree.DrawGizmos();
         }
     }
 }

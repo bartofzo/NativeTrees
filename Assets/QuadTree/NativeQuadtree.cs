@@ -5,6 +5,9 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
+// https://bartvandesande.nl
+// https://github.com/bartofzo
+
 // ReSharper disable StaticMemberInGenericType
 
 namespace NativeTrees
@@ -16,14 +19,14 @@ namespace NativeTrees
     /// Supported queries:
     ///     - Raycast
     ///     - Range (AABB2D overlap)
-    ///     - N-nearest neighbour
+    ///     - Nearest neighbours
     /// </para>
     /// <para>
     /// Other features:
     ///     - Implemented as a sparse quadtree, so only stores nodes that are occupied,
     ///       allowing it to go to a max depth of 15 (this could be more if the nodeId's are stored as long values
     ///     - Supports insertion of AABB2D's
-    ///     - Fast path insertino for points
+    ///     - Fast insertion for points
     ///     - Employs an extremely fast technique of checking for AABB2D / quad overlaps, see comment near the end
     ///     - Optimized with SIMD instructions so greatly benefits from burst compilation
     /// </para>
@@ -198,7 +201,7 @@ namespace NativeTrees
             foreach (var tempObj in objects.GetValuesForKey(nodeId))
                 tempObjects[objectCount++] = tempObj;
 
-            FixedList64Bytes<int> countPerQuad = new FixedList64Bytes<int>();
+            FixedList32Bytes<int> countPerQuad = new FixedList32Bytes<int>();
             countPerQuad.Length = 4;
 
             objects.Remove(nodeId); // remove all occurances of objects in our original
@@ -274,9 +277,9 @@ namespace NativeTrees
          * and instead boils down to one bitwise AND comparison for each quad. This boosts performance for AABB2D insertion and range queries.
          *
          * How it works:
-         * First, we compare the object's bounds to the center of the parent node we're currently in and convert it to a 6 bit wide bitmask where
-         * the lower 3 bits are set to 1 if the bounds min was on a negative side for that axis.
-         * The upper 3 bits are set to 1 if the bounds max was on the positive side for that axis.
+         * First, we compare the object's bounds to the center of the parent node we're currently in and convert it to a 4 bit wide bitmask where
+         * the lower 2 bits are set to 1 if the bounds min was on a negative side for that axis.
+         * The upper 2 bits are set to 1 if the bounds max was on the positive side for that axis.
          *
          * We have predefined masks for each quad, where a bitwise AND against the object's mask tells you if the object belongs in that quad,
          * in which case the result must be equal the the quad mask value.
@@ -370,6 +373,9 @@ namespace NativeTrees
                 float2 octantExtents = .5f * parent.nodeExtents;
                 return new ExtentsBounds(parent.nodeCenter + QuadCenterOffsets[index] * octantExtents, octantExtents);
             }
+            
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool Contains(float2 point) => math.all(math.abs(nodeCenter - point) <= nodeExtents);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static AABB2D GetBounds(in ExtentsBounds ce) => new AABB2D(ce.nodeCenter - ce.nodeExtents, ce.nodeCenter + ce.nodeExtents);

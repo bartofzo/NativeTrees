@@ -33,7 +33,7 @@ nature of the tree better.
 
 ## Installation
 
-Using the Unity package manager, choose Addd Package from git URL and enter:
+Using the Unity package manager, choose Add Package from git URL and enter:
 
     https://github.com/bartofzo/NativeTrees.git?path=/Packages/NativeTrees
 

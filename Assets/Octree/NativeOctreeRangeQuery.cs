@@ -70,6 +70,8 @@ namespace NativeTrees
                             return false; // stop traversing if visitor says so
                     } while (objects.TryGetNextValue(out wrappedObj, ref it));
                 }
+
+                return true;
             }
             
             return RangeNext(

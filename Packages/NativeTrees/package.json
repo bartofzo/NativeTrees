@@ -1,0 +1,14 @@
+{
+  "name": "com.bartofzo.nativetrees",
+  "displayName": "NativeTrees",
+  "version": "0.1.0",
+  "unity": "2021.3",
+  "description": "Generic, burst compatible sparse octree and quadtree \nthat store objects together with their axis aligned bounding boxes (AABB's)",
+  "keywords": [
+    "maths",
+    "unity",
+    "spatial partitioning"
+  ],
+  "category": "Unity",
+  "type": "library"
+}

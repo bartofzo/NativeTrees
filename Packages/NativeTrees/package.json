@@ -10,5 +10,10 @@
     "spatial partitioning"
   ],
   "category": "Unity",
-  "type": "library"
+  "type": "library",
+  "dependencies": {
+    "com.unity.collections": "",
+    "com.unity.burst": "",
+    "com.unity.mathematics": ""
+  }
 }

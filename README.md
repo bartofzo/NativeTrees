@@ -11,7 +11,6 @@ Tested with Unity 2021.1.3.11f1
 - Range (AABB overlap)
 - K-Nearest neighbours
 
-
 ### Other features:
 - Implemented as a sparse tree, so only stores nodes that are occupied. Memory usage is therefore relatively low.
   The octree has a max depth of 10 and the quad tree a max depth of 15.
@@ -31,6 +30,12 @@ nature of the tree better.
 ### Future todo's:
 - Frustrum query
 - 'Fat' raycast (virtually expand AABB's of nodes and objects when testing for ray intersections)
+
+## Installation
+
+Using the Unity package manager, choose Addd Package from git URL and enter:
+
+    https://github.com/bartofzo/NativeTrees.git?path=/Packages/NativeTrees
 
 ## Performance
 
@@ -192,8 +197,6 @@ A hashset can be used to only visit each object once.
 
 ### Support
 Feel free to raise an issue or contact me for any questions.
-
-### Donate
 The code is free to use in your project(s). 
 If this was helpful to you, consider buying me a coffee ;)
 

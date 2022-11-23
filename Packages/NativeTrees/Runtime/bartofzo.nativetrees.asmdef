@@ -2,8 +2,8 @@
     "name": "com.bartofzo.nativetrees",
     "rootNamespace": "NativeTrees",
     "references": [
-        "GUID:e0cd26848372d4e5c891c569017e11f1",
-        "GUID:d8b63aba1907145bea998dd612889d6b"
+        "Unity.Collections",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -119,7 +119,7 @@ namespace NativeTrees
         {
             // Root node id = 1
             // we always start at depth one (assume one split)
-            // our root node has a non zero id so that octants with bits 000 never get confused with the root node
+            // our root node has a non zero id so that quads with bits 000 never get confused with the root node
             // since we have 32 bits of room and our max depth is 10 (30 bits) we have room for that one root node bit
             // at position 31
             var objWrapper = new ObjWrapper(obj, bounds);
@@ -141,9 +141,9 @@ namespace NativeTrees
             while (depth <= maxDepth)
             {
                 // We can get the one quad the point is in with one operation
-                int octantIndex = PointToQuadIndex(point, extents.nodeCenter);
-                extents = QuarterSizeBounds.GetQuad(extents, octantIndex);
-                nodeId = GetQuadId(nodeId, octantIndex);
+                int quadIndex = PointToQuadIndex(point, extents.nodeCenter);
+                extents = QuarterSizeBounds.GetQuad(extents, quadIndex);
+                nodeId = GetQuadId(nodeId, quadIndex);
                 
                 if (TryInsert(nodeId, extents, objWrapper, depth))
                     return;
@@ -159,15 +159,15 @@ namespace NativeTrees
 
             for (int i = 0; i < 4; i++)
             {
-                int octantMask = QuadMasks[i];
-                if ((objMask & octantMask) != octantMask)
+                int quadMask = QuadMasks[i];
+                if ((objMask & quadMask) != quadMask)
                     continue;
                 
                 uint ocantId = GetQuadId(nodeid, i);
-                var octantCenterQuarterSize = QuarterSizeBounds.GetQuad(quarterSizeBounds, i);
+                var quadCenterQuarterSize = QuarterSizeBounds.GetQuad(quarterSizeBounds, i);
                 
-                if (!TryInsert(ocantId, octantCenterQuarterSize, objWrapper, parentDepth))
-                    InsertNext(ocantId, octantCenterQuarterSize, objWrapper, parentDepth);
+                if (!TryInsert(ocantId, quadCenterQuarterSize, objWrapper, parentDepth))
+                    InsertNext(ocantId, quadCenterQuarterSize, objWrapper, parentDepth);
             }
         }
 
@@ -215,8 +215,8 @@ namespace NativeTrees
               
                 for (int j = 0; j < 4; j++)
                 {
-                    int octantMask = QuadMasks[j];
-                    if ((aabbMask & octantMask) == octantMask)
+                    int quadMask = QuadMasks[j];
+                    if ((aabbMask & quadMask) == quadMask)
                     {
                         objects.Add(GetQuadId(nodeId, j), moveObject);
                         countPerQuad[j] = countPerQuad[j] + 1; // ++ ?
@@ -233,12 +233,12 @@ namespace NativeTrees
                 int count = countPerQuad[i];
                 if (count > 0)
                 {
-                    uint octantId = GetQuadId(nodeId, i);
-                    nodes[octantId] = count; // mark our node as being used
+                    uint quadId = GetQuadId(nodeId, i);
+                    nodes[quadId] = count; // mark our node as being used
                     
                     // could be that we need to subdivide again if all of the objects went to the same quad
                     if (count > objectsPerNode && depth < maxDepth) // todo: maxDepth check can be hoisted
-                        Subdivide(octantId, QuarterSizeBounds.GetQuad(quarterSizeBounds, i), depth);
+                        Subdivide(quadId, QuarterSizeBounds.GetQuad(quarterSizeBounds, i), depth);
                 }
             }
         }
@@ -268,7 +268,7 @@ namespace NativeTrees
         /// For each level we go down, we shift these bits 2 spaces to the left
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint GetQuadId(uint parent, int octantIndex) => (parent << 2) | (uint)octantIndex;
+        public static uint GetQuadId(uint parent, int quadIndex) => (parent << 2) | (uint)quadIndex;
         
         /*
          * AABB2D - quad overlap technique explanation:
@@ -370,8 +370,8 @@ namespace NativeTrees
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public static ExtentsBounds GetQuad(in ExtentsBounds parent, int index)
             {
-                float2 octantExtents = .5f * parent.nodeExtents;
-                return new ExtentsBounds(parent.nodeCenter + QuadCenterOffsets[index] * octantExtents, octantExtents);
+                float2 quadExtents = .5f * parent.nodeExtents;
+                return new ExtentsBounds(parent.nodeCenter + QuadCenterOffsets[index] * quadExtents, quadExtents);
             }
             
             [MethodImpl(MethodImplOptions.AggressiveInlining)]

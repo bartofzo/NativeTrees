@@ -74,6 +74,10 @@ There are two samples included that show how to use the octree and quadtree.
 The extension classes provide readymade solutions for AABB only checking. For more complicated
 shapes you must provide your own ray/overlap/distance calculations.
 
+NOTE: If you've imported the package via the Unity Package Manager, you need to copy the
+sample scenes to your Assets folder to open them. 
+[See this thread](https://forum.unity.com/threads/it-is-not-allowed-to-open-a-scene-in-a-read-only-package-why.1148036/)
+
 ### Insertion
 The objects can be of any unmanaged type, when inserting, an AABB must be provided:
 
@@ -92,7 +96,6 @@ If you know your objects are points, you can insert them faster by using:
     // Insert entities that are 'points'
     for (int i = 0; i < entities.Length; i++)
     {
-        var entity = entities[i];
         octree.InsertPoint(entities[i], positions[i]);
     }
 
@@ -200,7 +203,8 @@ Feel free to raise an issue or contact me for any questions.
 The code is free to use in your project(s).
 If this was helpful to you, consider buying me a coffee ;)
 
-https://ko-fi.com/bartofzo
+<a href='https://ko-fi.com/bartofzo' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+
 
 Thank you!
 

@@ -1,6 +1,6 @@
 ![NativeTrees](./Packages/NativeTrees/NativeTrees.png "NativeTrees")
 
-Generic sparse octree and quadtree 
+Generic sparse octree and quadtree
 that store objects together with their axis aligned bounding boxes (AABB's)
 
 Written in C# for Unity's burst compiler and the ECS/DOTS framework.
@@ -21,10 +21,10 @@ Tested with Unity 2021.1.3.11f1
 ### Limitations:
 - Objects must be structs (Burst limitation)
 - No remove or update. Tried several approaches but they either left an unbalanced tree or doing a
-full clear and re-insert was faster.
+  full clear and re-insert was faster.
 - No foreach support, we leverage the stack and "struct" delegates, which suits the recursive
-nature of the tree better.
-  
+  nature of the tree better.
+
 - Insertion can only be done on a single thread. Queries ofcourse can be across multiple threads.
 
 ### Future todo's:
@@ -33,16 +33,16 @@ nature of the tree better.
 
 ## Installation
 
-Using the Unity package manager, choose Add Package from git URL and enter:
+Using the Unity package manager, choose Addd Package from git URL and enter:
 
     https://github.com/bartofzo/NativeTrees.git?path=/Packages/NativeTrees
 
 ## Performance
 
-The trees are heaviliy optimized to make use of SIMD instructions. 
+The trees are heaviliy optimized to make use of SIMD instructions.
 Therefore performance is best when used in burst compiled code.
 
-Queries are *very* fast. 
+Queries are *very* fast.
 The raycast never visits more nodes than absolutely neccessary.
 The overlap (and insertion) use a technique where to test in which child nodes AABB's should go, only
 two comparisons are made followed up by some bitwise operations. (See the source for an explanation).
@@ -50,7 +50,7 @@ two comparisons are made followed up by some bitwise operations. (See the source
 Nearest neighbour is the slowest of the bunch (but still fast) as it has some overhead in keeping track of a priority queue.
 
 Actual performance can vary wildly depending on the structure of your tree and it's
-settings. For the sake of cool stats, here are some numbers on insertion times and raycasts for random points and AABB's, 
+settings. For the sake of cool stats, here are some numbers on insertion times and raycasts for random points and AABB's,
 Single thread burst compiled, maxDepth of 8. These numbers should not be taken too seriously because it's random data
 and the tree will be divided almost equally everywhere, which in most realistic scenarios is not the case.
 
@@ -74,6 +74,10 @@ There are two samples included that show how to use the octree and quadtree.
 The extension classes provide readymade solutions for AABB only checking. For more complicated
 shapes you must provide your own ray/overlap/distance calculations.
 
+NOTE: If you've imported the package via the Unity Package Manager, you need to copy the
+sample scenes to your Assets folder to open them.
+[See this thread](https://forum.unity.com/threads/it-is-not-allowed-to-open-a-scene-in-a-read-only-package-why.1148036/)
+
 ### Insertion
 The objects can be of any unmanaged type, when inserting, an AABB must be provided:
 
@@ -92,7 +96,6 @@ If you know your objects are points, you can insert them faster by using:
     // Insert entities that are 'points'
     for (int i = 0; i < entities.Length; i++)
     {
-        var entity = entities[i];
         octree.InsertPoint(entities[i], positions[i]);
     }
 
@@ -197,10 +200,11 @@ A hashset can be used to only visit each object once.
 
 ### Support
 Feel free to raise an issue or contact me for any questions.
-The code is free to use in your project(s). 
+The code is free to use in your project(s).
 If this was helpful to you, consider buying me a coffee ;)
 
-https://ko-fi.com/bartofzo
+<a href='https://ko-fi.com/bartofzo' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+
 
 Thank you!
 

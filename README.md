@@ -4,7 +4,7 @@ Generic sparse octree and quadtree
 that store objects together with their axis aligned bounding boxes (AABB's)
 
 Written in C# for Unity's burst compiler and the ECS/DOTS framework.
-Tested with Unity 2021.1.3.11f1
+Tested with Unity 2021.3.11f1
 
 ### Supported queries:
 - Raycast

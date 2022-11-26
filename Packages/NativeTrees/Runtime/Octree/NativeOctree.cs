@@ -91,8 +91,6 @@ namespace NativeTrees
             this.boundsCenter = bounds.Center;
             this.boundsExtents = bounds.Size / 2;
             this.boundsQuarterSize = boundsExtents / 2;
-            
-            Clear();
         }
 
         /// <summary>

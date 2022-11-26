@@ -4,7 +4,7 @@ Generic sparse octree and quadtree
 that store objects together with their axis aligned bounding boxes (AABB's)
 
 Written in C# for Unity's burst compiler and the ECS/DOTS framework.
-Tested with Unity 2021.1.3.11f1
+Tested with Unity 2021.3.11f1
 
 ### Supported queries:
 - Raycast
@@ -33,7 +33,7 @@ Tested with Unity 2021.1.3.11f1
 
 ## Installation
 
-Using the Unity package manager, choose Addd Package from git URL and enter:
+Using the Unity package manager, choose Add Package from git URL and enter:
 
     https://github.com/bartofzo/NativeTrees.git?path=/Packages/NativeTrees
 

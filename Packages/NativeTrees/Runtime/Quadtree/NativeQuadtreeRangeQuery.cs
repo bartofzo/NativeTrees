@@ -35,8 +35,8 @@ namespace NativeTrees
             
             for (int i = 0; i < 4; i++)
             {
-                int octantMask = QuadMasks[i];
-                if ((rangeMask & octantMask) == octantMask)
+                int quadMask = QuadMasks[i];
+                if ((rangeMask & quadMask) == quadMask)
                 {
                     uint octantId = GetQuadId(nodeId, i);
                     if (nodes.TryGetValue(octantId, out int objectCount) &&

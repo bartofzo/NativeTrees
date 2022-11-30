@@ -71,7 +71,7 @@ namespace NativeTrees
             
             for (int i = 0; i < 3; i++)
             {
-                uint octantId = GetQuadId(nodeId, quadIndex);
+                uint quadId = GetQuadId(nodeId, quadIndex);
 
                 #if DEBUG_RAYCAST_GIZMO
                 var debugExt = ExtentsBounds.GetOctant(extentsBounds, octantIndex);
@@ -81,10 +81,10 @@ namespace NativeTrees
                 UnityEngine.Gizmos.DrawCube((Vector2)debugExt.nodeCenter, (Vector2)debugExt.nodeExtents * 1.75f);
                 #endif
                 
-                if (nodes.TryGetValue(octantId, out int objectCount) && 
+                if (nodes.TryGetValue(quadId, out int objectCount) && 
                     Raycast(
                         ray: new PrecomputedRay2D(ray, quadRayIntersection), 
-                        nodeId: octantId, 
+                        nodeId: quadId, 
                         extentsBounds: ExtentsBounds.GetQuad(extentsBounds, quadIndex), 
                         objectCount: objectCount,
                         hit: out hit,

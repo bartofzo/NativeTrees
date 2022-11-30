@@ -161,11 +161,11 @@ namespace NativeTrees
                 if ((objMask & octantMask) != octantMask)
                     continue;
                 
-                uint ocantId = GetOctantId(nodeid, i);
+                uint octantId = GetOctantId(nodeid, i);
                 var octantCenterQuarterSize = QuarterSizeBounds.GetOctant(quarterSizeBounds, i);
                 
-                if (!TryInsert(ocantId, octantCenterQuarterSize, objWrapper, parentDepth))
-                    InsertNext(ocantId, octantCenterQuarterSize, objWrapper, parentDepth);
+                if (!TryInsert(octantId, octantCenterQuarterSize, objWrapper, parentDepth))
+                    InsertNext(octantId, octantCenterQuarterSize, objWrapper, parentDepth);
             }
         }
 

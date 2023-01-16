@@ -134,7 +134,7 @@ namespace NativeTrees
 
             // We can (mainly) do without recursion for this insertion method. Except for when an octant needs to subdivide.
             QuarterSizeBounds extents = new QuarterSizeBounds(boundsCenter, boundsQuarterSize);
-            int depth = 0;
+            int depth = 1;
             uint nodeId = 1;
             while (depth <= maxDepth)
             {
